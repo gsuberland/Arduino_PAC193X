@@ -188,11 +188,27 @@ uint16_t PAC193X::Read16(uint8_t registerAddress, PAC193X_STATUS* status)
 }
 
 
+int16_t PAC193X::ReadSigned16(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return static_cast<int16_t>(Read16(registerAddress, status));
+}
+
+
 uint32_t PAC193X::Read24(uint8_t registerAddress, PAC193X_STATUS* status)
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
     
     return Read32(registerAddress, status) >> 8;
+}
+
+
+int32_t PAC193X::ReadSigned24(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+    
+    return static_cast<int32_t>(Read32(registerAddress, status)) >> 8;
 }
 
 
@@ -205,6 +221,50 @@ uint32_t PAC193X::Read32(uint8_t registerAddress, PAC193X_STATUS* status)
     if (status != nullptr)
         *status = readStatus;
     return value;
+}
+
+
+int32_t PAC193X::ReadSigned32(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return static_cast<int32_t>(Read32(registerAddress, status));
+}
+
+
+uint64_t PAC193X::Read48(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return Read64(registerAddress, status) >> 16;
+}
+
+
+int64_t PAC193X::ReadSigned48(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+    
+    return static_cast<int64_t>(Read64(registerAddress, status)) >> 16;
+}
+
+
+uint64_t PAC193X::Read64(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    uint64_t value = 0;
+    PAC193X_STATUS readStatus = ReadRegister(registerAddress, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&value), PAC193X_NEED_ENDIAN_SWAP);
+    if (status != nullptr)
+        *status = readStatus;
+    return value;
+}
+
+
+int64_t PAC193X::ReadSigned64(uint8_t registerAddress, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return static_cast<int64_t>(Read64(registerAddress, status));
 }
 
 
