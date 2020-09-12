@@ -227,7 +227,7 @@ class PAC193X
         /* Begin a refresh operation and reset accumulators & counts. This corresponds to the REFRESH command. Returns a WaitingForRefresh status if a refresh was already pending. */
         PAC193X_STATUS refreshAndResetAsync();
         /* Blocks until the refresh operation completes. */
-        PAC193X_STATUS waitForRefresh();
+        void waitForRefresh();
 
         /* Perform a refresh operation without resetting accumulators or counts. This corresponds to the REFRESH_V command. This function blocks until the refresh operation has completed. Returns a WaitingForRefresh status if a refresh was already pending. */
         PAC193X_STATUS refreshSync();
@@ -280,7 +280,7 @@ class PAC193X
         /* Blocks and waits for the last REFRESH[_V|_G] command to complete. The wait time is configured via PAC193X_REFRESH_WAIT_TIME_US (default is 1.05ms) and is tracked via timeOfLastRefreshCommand. */
         void WaitForRefresh();
 
-        PAC193X_STATUS Command_REFRESH_Wait(uint8_t commandAddress);
+        PAC193X_STATUS Command_REFRESH_Internal(uint8_t commandAddress);
         PAC193X_STATUS Command_REFRESH();
         PAC193X_STATUS Command_REFRESH_V();
         PAC193X_STATUS Command_REFRESH_G();

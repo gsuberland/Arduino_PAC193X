@@ -35,6 +35,50 @@ PAC193X_STATUS PAC193X::begin(uint8_t address, uint32_t shuntResistanceMicroOhm,
 }
 
 
+PAC193X_STATUS PAC193X::refreshAsync()
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    return Command_REFRESH_V();
+}
+
+
+PAC193X_STATUS PAC193X::refreshAndResetAsync()
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+    
+    return Command_REFRESH();
+}
+
+
+void PAC193X::waitForRefresh()
+{
+    WaitForRefresh();
+}
+
+
+PAC193X_STATUS PAC193X::refreshSync()
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    PAC193X_STATUS status = Command_REFRESH_V();
+    if (!PAC193X_STATUS_OK(status))
+        return status;
+    WaitForRefresh();
+}
+
+
+PAC193X_STATUS PAC193X::refreshAndResetSync()
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+    
+    PAC193X_STATUS status = Command_REFRESH();
+    if (!PAC193X_STATUS_OK(status))
+        return status;
+    WaitForRefresh();
+}
+
+
 PAC193X_STATUS PAC193X::WriteRegister(uint8_t registerAddress, uint8_t value)
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
