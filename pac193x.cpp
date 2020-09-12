@@ -67,6 +67,19 @@ uint8_t PAC193X::getRevisionID(PAC193X_STATUS* status)
 }
 
 
+double PAC193X::getVoltageLast(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    if (channelIndex > 3)
+    {
+        return PAC193X_STATUS::InvalidChannelIndex;
+    }
+    if (!isChannelEnabled(channelIndex, status))
+    {
+        return PAC193X_STATUS::ChannelDisabled;
+    }
+}
+
+
 PAC193X_STATUS PAC193X::refreshAsync()
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
@@ -109,6 +122,35 @@ PAC193X_STATUS PAC193X::refreshAndResetSync()
         return status;
     WaitForRefresh();
 }
+
+
+bool PAC193X::isChannelEnabled(uint8_t index, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+    
+    if (index > 3)
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
+        return false;
+    }
+
+    // channel disable register is a bitmask: [CH1_OFF, CH2_OFF, CH3_OFF, CH4_OFF, U, U, U, U]
+    PAC193X_STATUS readStatus;
+    uint8_t channelDisableBits = Read8(PAC193X_CHANNEL_DIS_ACT_ADDR, &readStatus);
+    if (!PAC193X_STATUS_OK(readStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+        return false;
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    
+    uint8_t channelBitPos = 4 + index;
+    return (channelDisableBits & (1 << channelBitPos)) != 0;
+}
+
+
+/* ======== PRIVATE METHODS ======== */
 
 
 PAC193X_STATUS PAC193X::WriteRegister(uint8_t registerAddress, uint8_t value)
@@ -170,8 +212,7 @@ uint8_t PAC193X::Read8(uint8_t registerAddress, PAC193X_STATUS* status)
 
     uint8_t value = 0;
     PAC193X_STATUS readStatus = ReadRegister(registerAddress, sizeof(uint8_t), &value);
-    if (status != nullptr)
-        *status = readStatus;
+    PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
     return value;
 }
 
@@ -182,8 +223,7 @@ uint16_t PAC193X::Read16(uint8_t registerAddress, PAC193X_STATUS* status)
 
     uint16_t value = 0;
     PAC193X_STATUS readStatus = ReadRegister(registerAddress, sizeof(uint16_t), reinterpret_cast<uint8_t*>(&value), PAC193X_NEED_ENDIAN_SWAP);
-    if (status != nullptr)
-        *status = readStatus;
+    PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
     return value;
 }
 
@@ -218,8 +258,7 @@ uint32_t PAC193X::Read32(uint8_t registerAddress, PAC193X_STATUS* status)
 
     uint32_t value = 0;
     PAC193X_STATUS readStatus = ReadRegister(registerAddress, sizeof(uint32_t), reinterpret_cast<uint8_t*>(&value), PAC193X_NEED_ENDIAN_SWAP);
-    if (status != nullptr)
-        *status = readStatus;
+    PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
     return value;
 }
 
@@ -254,8 +293,7 @@ uint64_t PAC193X::Read64(uint8_t registerAddress, PAC193X_STATUS* status)
 
     uint64_t value = 0;
     PAC193X_STATUS readStatus = ReadRegister(registerAddress, sizeof(uint64_t), reinterpret_cast<uint8_t*>(&value), PAC193X_NEED_ENDIAN_SWAP);
-    if (status != nullptr)
-        *status = readStatus;
+    PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
     return value;
 }
 
