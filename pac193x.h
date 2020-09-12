@@ -13,11 +13,14 @@
 #endif
 
 
+#define PAC193X_SET_STATUS_IF_NOT_NULL(value) if (status != nullptr) { *status = value; }
+
+
 /* Returns a NotConfigured status if isConfigured is set to false. */
 #define PAC193X_RETURN_IF_NOT_CONFIGURED { if (!this->isConfigured) return PAC193X_STATUS::NotConfigured; }
 /* Checks if isConfigured is set to false, and if so sets the status parameter value to NotConfigured and returns. */
-#define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED { if (!this->isConfigured) { if (status != nullptr) { *status = PAC193X_STATUS::NotConfigured; } return 0; } }
-#define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(returnVal) { if (!this->isConfigured) { if (status != nullptr) { *status = PAC193X_STATUS::NotConfigured; } return returnVal; } }
+#define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED { if (!this->isConfigured) { PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NotConfigured); return 0; } }
+#define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(returnVal) { if (!this->isConfigured) { PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NotConfigured);  return returnVal; } }
 
 
 #define PAC193X_REFRESH_WAIT_TIME_US    1050    /* This value represents the amount of time, in microseconds, that must be waited between issuing a refresh command and attempting to read from a value register. */
