@@ -17,6 +17,7 @@
 #define PAC193X_RETURN_IF_NOT_CONFIGURED { if (!this->isConfigured) return PAC193X_STATUS::NotConfigured; }
 /* Checks if isConfigured is set to false, and if so sets the status parameter value to NotConfigured and returns. */
 #define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED { if (!this->isConfigured) { if (status != nullptr) { *status = PAC193X_STATUS::NotConfigured; } return 0; } }
+#define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(returnVal) { if (!this->isConfigured) { if (status != nullptr) { *status = PAC193X_STATUS::NotConfigured; } return returnVal; } }
 
 
 #define PAC193X_REFRESH_WAIT_TIME_US    1050    /* This value represents the amount of time, in microseconds, that must be waited between issuing a refresh command and attempting to read from a value register. */
@@ -110,7 +111,7 @@
 #define PAC1934_PRODUCT_ID      0b01010011
 
 /* PAC193X product IDs */
-enum PAC_193X_PRODUCT : uint8_t
+enum PAC193X_PRODUCT : uint8_t
 {
     PAC1931 = PAC1931_PRODUCT_ID,
     PAC1932 = PAC1932_PRODUCT_ID,
@@ -118,6 +119,7 @@ enum PAC_193X_PRODUCT : uint8_t
     PAC1934 = PAC1934_PRODUCT_ID,
     VALUE_MIN = PAC1931,
     VALUE_MAX = PAC1934,
+    INVALID = 0xFF
 };
 
 
@@ -202,6 +204,8 @@ class PAC193X
 
         /* Returns the product ID from the PRODUCT_ID register. The status of the command is returned via the status parameter if null is not passed. */
         uint8_t getProductID(PAC193X_STATUS* status);
+        /* Returns the product type as a PAC193X_PRODUCT enum member. This is identical to getProductID, but it returns an enum instead. The status of the command is returned via the status parameter if null is not passed. */
+        PAC193X_PRODUCT getProduct(PAC193X_STATUS* status);
         /* Returns the manufacturer ID from the MANUFACTURER_ID register. The status of the command is returned via the status parameter if null is not passed. */
         uint8_t getManufacturerID(PAC193X_STATUS* status);
         /* Returns the part revision ID from the REVISION_ID register. The status of the command is returned via the status parameter if null is not passed. */

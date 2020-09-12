@@ -3,9 +3,9 @@
 
 PAC193X::PAC193X()
 {
-    deviceAddress = 0;
-    shuntResistance = 0;
-    isConfigured = false;
+    this->deviceAddress = 0;
+    this->shuntResistance = 0;
+    this->isConfigured = false;
 }
 
 
@@ -32,6 +32,38 @@ PAC193X_STATUS PAC193X::begin(uint8_t address, uint32_t shuntResistanceMicroOhm,
     this->isConfigured = true;
 
     return PAC193X_STATUS::OK;
+}
+
+
+uint8_t PAC193X::getProductID(PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return Read8(PAC193X_PRODUCT_ID_ADDR, status);
+}
+
+
+PAC193X_PRODUCT PAC193X::getProduct(PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_PRODUCT::INVALID);
+
+    return (PAC193X_PRODUCT)Read8(PAC193X_PRODUCT_ID_ADDR, status);
+}
+
+
+uint8_t PAC193X::getManufacturerID(PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return Read8(PAC193X_MANUFACTURER_ID_ADDR, status);
+}
+
+
+uint8_t PAC193X::getRevisionID(PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return Read8(PAC193X_REVISION_ID_ADDR, status);
 }
 
 
@@ -202,7 +234,7 @@ bool PAC193X::ValidateSampleRate(PAC193X_SAMPLE_RATE sampleRate)
 
 bool PAC193X::IsRefreshPending()
 {
-    return (micros() - timeOfLastRefreshCommand) < PAC193X_REFRESH_WAIT_TIME_US;
+    return (micros() - this->timeOfLastRefreshCommand) < PAC193X_REFRESH_WAIT_TIME_US;
 }
 
 
@@ -222,7 +254,7 @@ PAC193X_STATUS PAC193X::Command_REFRESH_Internal(uint8_t commandAddress)
     PAC193X_STATUS status = WriteRegister(commandAddress, 1);
     if (PAC193X_STATUS_OK(status))
     {
-        timeOfLastRefreshCommand = micros();
+        this->timeOfLastRefreshCommand = micros();
     }
 }
 
