@@ -1,3 +1,12 @@
+/* 
+ * Arduino library for Microchip PAC193X series power monitors.
+ * Copyright (c) 2020 Graham Sutherland
+ * 
+ * This software is released under MIT license.
+ * Please see the LICENSE file for the full text.
+ *
+ */
+
 #ifndef PAC193X_ARDUINO_LIBRARY_h
 #define PAC193X_ARDUINO_LIBRARY_h
 
