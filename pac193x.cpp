@@ -86,6 +86,11 @@ double PAC193X::getVoltageLast(uint8_t channelIndex, PAC193X_STATUS* status)
     {
         return PAC193X_STATUS::ChannelDisabled;
     }
+    if (IsRefreshPending())
+    {
+        return PAC193X_STATUS::WaitingForRefresh;
+    }
+
 }
 
 
@@ -312,6 +317,54 @@ int64_t PAC193X::ReadSigned64(uint8_t registerAddress, PAC193X_STATUS* status)
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
     return static_cast<int64_t>(Read64(registerAddress, status));
+}
+
+
+bool PAC193X::IsChannelVoltageBipolar(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    // validate channel index
+    if (channelIndex > 3)
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
+        return false;
+    }
+
+    // read the NEG PWR ACT register to get the actually-configured measurement state
+    PAC193X_STATUS readStatus;
+    uint8_t negPwrAct = Read8(PAC193X_NEG_PWR_ACT_ADDR, &readStatus);
+    if (!PAC193X_STATUS_OK(readStatus))
+    {
+        return readStatus;
+    }
+
+    // bi-directional voltage config is in the bottom 4 bits
+    return (negPwrAct & (1 << channelIndex)) != 0;
+}
+
+
+bool PAC193X::IsChannelCurrentBipolar(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    // validate channel index
+    if (channelIndex > 3)
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
+        return false;
+    }
+
+    // read the NEG PWR ACT register to get the actually-configured measurement state
+    PAC193X_STATUS readStatus;
+    uint8_t negPwrAct = Read8(PAC193X_NEG_PWR_ACT_ADDR, &readStatus);
+    if (!PAC193X_STATUS_OK(readStatus))
+    {
+        return readStatus;
+    }
+
+    // bi-directional current config is in the top 4 bits
+    return (negPwrAct & (1 << (channelIndex + 4))) != 0;
 }
 
 

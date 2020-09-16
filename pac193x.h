@@ -195,6 +195,12 @@ enum PAC193X_SAMPLE_RATE : uint8_t
 };
 
 
+#define PAC193X_UNIPOLAR_VOLTAGE_MIN 0.0
+#define PAC193X_UNIPOLAR_VOLTAGE_MAX 32.0
+#define PAC193X_BIPOLAR_VOLTAGE_MIN -32.0
+#define PAC193X_BIPOLAR_VOLTAGE_MAX 32.0
+
+
 #define PAC193X_ADDRESS_MASK_ZEROS ((uint8_t)0b11000001)    /* This mask represents which bits MUST be 0 in the device address. The top 2 bits are always zero, and the bottom bit is a R/W status bit that should not be used. */
 #define PAC193X_ADDRESS_MASK_ONES  ((uint8_t)0b00100000)    /* This mask represents which bits MUST be 1 in the device address. Bit 5 must be set to 1 as per the datasheet. */
 
@@ -254,6 +260,10 @@ class PAC193X
         uint8_t getPhysicalChannelCount();
         /* Returns true if the channel at the specified index (0-3) is enabled, otherwise false. The status of the command is returned via the status parameter if null is not passed. */
         bool isChannelEnabled(uint8_t index, PAC193X_STATUS* status);
+        /* Returns true if the channel at the specified index (0-3) is configured in bipolar voltage measurement mode. Unipolar channels have a range of 0V to +32V, and bipolar channels have a range of -32V to +32V. */
+        bool isChannelVoltageBipolar(uint8_t index, PAC193X_STATUS* status);
+        /* Returns true if the channel at the specified index (0-3) is configured in bipolar current measurement mode. Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. */
+        bool isChannelCurrentBipolar(uint8_t index, PAC193X_STATUS* status);
         /* Sets whether or not the channel at the specified index (0-3) is enabled. */
         PAC193X_STATUS setChannelEnabled(uint8_t index, bool enable);
 
@@ -291,6 +301,10 @@ class PAC193X
         uint64_t Read64(uint8_t registerAddress, PAC193X_STATUS* status);
         int64_t ReadSigned64(uint8_t registerAddress, PAC193X_STATUS* status);
 
+        /* Returns true if the voltage measurement for the channel at the specified index (0-3) is in bipolar mode. */
+        bool IsChannelVoltageBipolar(uint8_t channelIndex, PAC193X_STATUS* status);
+        /* Returns true if the current measurement for the channel at the specified index (0-3) is in bipolar mode. */
+        bool IsChannelCurrentBipolar(uint8_t channelIndex, PAC193X_STATUS* status);
         /* Returns true if a refrehs operation is currently pending, otherwise false. */
         bool IsRefreshPending();
         /* Blocks and waits for the last REFRESH[_V|_G] command to complete. The wait time is configured via PAC193X_REFRESH_WAIT_TIME_US (default is 1.05ms) and is tracked via timeOfLastRefreshCommand. */
