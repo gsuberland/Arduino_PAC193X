@@ -22,6 +22,7 @@
 #endif
 
 
+/* Sets the status variable to a given value if the pointer is not null. */
 #define PAC193X_SET_STATUS_IF_NOT_NULL(value) if (status != nullptr) { *status = value; }
 
 
@@ -135,6 +136,15 @@ enum PAC193X_PRODUCT : uint8_t
 };
 
 
+/* PAC193X channel polarities */
+enum PAC193X_CHANNEL_POLARITY : uint8_t
+{
+    ERROR,
+    UNIPOLAR,
+    BIPOLAR,
+};
+
+
 // macro to build the CTRL register bitfield value from components
 #define PAC193X_MAKE_CTRL_REG(ctrl_sample_rate, ctrl_sleep, ctrl_sing, ctrl_alert_pin, ctrl_alert_cc, ctrl_ovf_alert) \
     ((uint8_t)( \
@@ -160,6 +170,8 @@ enum PAC193X_PRODUCT : uint8_t
 enum PAC193X_STATUS : uint8_t
 {
     OK,
+
+    InternalError,
 
     InvalidDeviceAddress,
     InvalidResistorValue,
@@ -199,6 +211,11 @@ enum PAC193X_SAMPLE_RATE : uint8_t
 #define PAC193X_UNIPOLAR_VOLTAGE_MAX 32.0
 #define PAC193X_BIPOLAR_VOLTAGE_MIN -32.0
 #define PAC193X_BIPOLAR_VOLTAGE_MAX 32.0
+
+#define PAC193X_UNIPOLAR_CURRENT_MIN 0.000
+#define PAC193X_UNIPOLAR_CURRENT_MAX 0.100
+#define PAC193X_BIPOLAR_CURRENT_MIN -0.100
+#define PAC193X_BIPOLAR_CURRENT_MAX 0.100
 
 
 #define PAC193X_ADDRESS_MASK_ZEROS ((uint8_t)0b11000001)    /* This mask represents which bits MUST be 0 in the device address. The top 2 bits are always zero, and the bottom bit is a R/W status bit that should not be used. */
@@ -259,11 +276,15 @@ class PAC193X
         /* Returns the number of physical channels for this particular device, based on the product ID. */
         uint8_t getPhysicalChannelCount();
         /* Returns true if the channel at the specified index (0-3) is enabled, otherwise false. The status of the command is returned via the status parameter if null is not passed. */
-        bool isChannelEnabled(uint8_t index, PAC193X_STATUS* status);
-        /* Returns true if the channel at the specified index (0-3) is configured in bipolar voltage measurement mode. Unipolar channels have a range of 0V to +32V, and bipolar channels have a range of -32V to +32V. */
-        bool isChannelVoltageBipolar(uint8_t index, PAC193X_STATUS* status);
-        /* Returns true if the channel at the specified index (0-3) is configured in bipolar current measurement mode. Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. */
-        bool isChannelCurrentBipolar(uint8_t index, PAC193X_STATUS* status);
+        bool isChannelEnabled(uint8_t channelIndex, PAC193X_STATUS* status);
+        /* Returns the voltage measurement polarity for the channel at the specified index (0-3). Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. */
+        PAC193X_CHANNEL_POLARITY getChannelVoltagePolarity(uint8_t channelIndex, PAC193X_STATUS* status);
+        /* Returns the current measurement polarity for the channel at the specified index (0-3). Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. */
+        PAC193X_CHANNEL_POLARITY getChannelCurrentPolarity(uint8_t channelIndex, PAC193X_STATUS* status);
+        /* Returns the min and max voltage values for the channel at the specified index (0-3), via the reference parameters. */
+        PAC193X_STATUS getChannelVoltageRange(uint8_t channelIndex, double* voltageMin, double* voltageMax);
+        /* Returns the min and max current values for the channel at the specified index (0-3), via the reference parameters. */
+        PAC193X_STATUS getChannelCurrentRange(uint8_t channelIndex, double* currentMin, double* currentMax);
         /* Sets whether or not the channel at the specified index (0-3) is enabled. */
         PAC193X_STATUS setChannelEnabled(uint8_t index, bool enable);
 

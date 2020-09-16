@@ -138,11 +138,11 @@ PAC193X_STATUS PAC193X::refreshAndResetSync()
 }
 
 
-bool PAC193X::isChannelEnabled(uint8_t index, PAC193X_STATUS* status)
+bool PAC193X::isChannelEnabled(uint8_t channelIndex, PAC193X_STATUS* status)
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
     
-    if (index > 3)
+    if (channelIndex > 3)
     {
         PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
         return false;
@@ -159,8 +159,127 @@ bool PAC193X::isChannelEnabled(uint8_t index, PAC193X_STATUS* status)
 
     PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
     
-    uint8_t channelBitPos = 4 + index;
+    uint8_t channelBitPos = 4 + channelIndex;
     return (channelDisableBits & (1 << channelBitPos)) != 0;
+}
+
+
+PAC193X_CHANNEL_POLARITY PAC193X::getChannelVoltagePolarity(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_CHANNEL_POLARITY::ERROR);
+
+    // check the channel's voltage polarity. return an error state if the check fails.
+    PAC193X_STATUS polarityStatus;
+    bool isBipolar = IsChannelVoltageBipolar(channelIndex, &polarityStatus);
+    if (!PAC193X_STATUS_OK(polarityStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(polarityStatus);
+        return PAC193X_CHANNEL_POLARITY::ERROR;
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+
+    // return the appropriate polarity value
+    return isBipolar ? PAC193X_CHANNEL_POLARITY::BIPOLAR : PAC193X_CHANNEL_POLARITY::UNIPOLAR;
+}
+
+
+PAC193X_CHANNEL_POLARITY PAC193X::getChannelCurrentPolarity(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_CHANNEL_POLARITY::ERROR);
+
+    // check the channel's current polarity. return an error state if the check fails.
+    PAC193X_STATUS polarityStatus;
+    bool isBipolar = IsChannelCurrentBipolar(channelIndex, &polarityStatus);
+    if (!PAC193X_STATUS_OK(polarityStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(polarityStatus);
+        return PAC193X_CHANNEL_POLARITY::ERROR;
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+
+    // return the appropriate polarity value
+    return isBipolar ? PAC193X_CHANNEL_POLARITY::BIPOLAR : PAC193X_CHANNEL_POLARITY::UNIPOLAR;
+}
+
+
+PAC193X_STATUS PAC193X::getChannelVoltageRange(uint8_t channelIndex, double* voltageMin, double* voltageMax)
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    // voltageMin/voltageMax are not optional.
+    if (voltageMin == nullptr || voltageMax == nullptr)
+    {
+        return PAC193X_STATUS::InvalidArgument;
+    }
+
+    // get the polarity. return an error state if the check fails.
+    PAC193X_STATUS polarityStatus;
+    PAC193X_CHANNEL_POLARITY polarity = getChannelCurrentPolarity(channelIndex, &polarityStatus);
+    if (!PAC193X_STATUS_OK(polarityStatus))
+    {
+        return polarityStatus;
+    }
+
+    // set the min/max based on the polarity.
+    switch (polarity)
+    {
+        case PAC193X_CHANNEL_POLARITY::UNIPOLAR:
+            *voltageMin = PAC193X_UNIPOLAR_VOLTAGE_MIN;
+            *voltageMax = PAC193X_UNIPOLAR_VOLTAGE_MAX;
+            break;
+        case PAC193X_CHANNEL_POLARITY::BIPOLAR:
+            *voltageMin = PAC193X_BIPOLAR_VOLTAGE_MIN;
+            *voltageMax = PAC193X_BIPOLAR_VOLTAGE_MAX;
+            break;
+        default:
+            return PAC193X_STATUS::InternalError;
+    }
+
+    return PAC193X_STATUS::OK;
+}
+
+
+PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* currentMin, double* currentMax)
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    // currentMin/currentMax are not optional.
+    if (currentMin == nullptr || currentMax == nullptr)
+    {
+        return PAC193X_STATUS::InvalidArgument;
+    }
+
+    // get the polarity. return an error state if the check fails.
+    PAC193X_STATUS polarityStatus;
+    PAC193X_CHANNEL_POLARITY polarity = getChannelCurrentPolarity(channelIndex, &polarityStatus);
+    if (!PAC193X_STATUS_OK(polarityStatus))
+    {
+        return polarityStatus;
+    }
+
+    // set the min/max based on the polarity.
+    // this uses I=sqrt(V/R), but requires multiplication by the sign (-1 or 1) in order to produce correct values for negative voltages.
+    switch (polarity)
+    {
+        case PAC193X_CHANNEL_POLARITY::UNIPOLAR:
+            *currentMin = (signbit(PAC193X_UNIPOLAR_CURRENT_MIN) ? -1.0 : 1.0) *
+                            sqrt(PAC193X_UNIPOLAR_CURRENT_MIN / (this->shuntResistance / 1000000.0));
+            *currentMax = (signbit(PAC193X_UNIPOLAR_CURRENT_MAX) ? -1.0 : 1.0) *
+                            sqrt(PAC193X_UNIPOLAR_CURRENT_MAX / (this->shuntResistance / 1000000.0));
+            break;
+        case PAC193X_CHANNEL_POLARITY::BIPOLAR:
+            *currentMin = (signbit(PAC193X_BIPOLAR_CURRENT_MIN) ? -1.0 : 1.0) *
+                            sqrt(PAC193X_BIPOLAR_CURRENT_MIN / (this->shuntResistance / 1000000.0));
+            *currentMax = (signbit(PAC193X_BIPOLAR_CURRENT_MAX) ? -1.0 : 1.0) *
+                            sqrt(PAC193X_BIPOLAR_CURRENT_MAX / (this->shuntResistance / 1000000.0));
+            break;
+        default:
+            return PAC193X_STATUS::InternalError;
+    }
+
+    return PAC193X_STATUS::OK;
 }
 
 
