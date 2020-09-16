@@ -339,6 +339,8 @@ bool PAC193X::IsChannelVoltageBipolar(uint8_t channelIndex, PAC193X_STATUS* stat
         return readStatus;
     }
 
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+
     // bi-directional voltage config is in the bottom 4 bits
     return (negPwrAct & (1 << channelIndex)) != 0;
 }
@@ -362,6 +364,8 @@ bool PAC193X::IsChannelCurrentBipolar(uint8_t channelIndex, PAC193X_STATUS* stat
     {
         return readStatus;
     }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
 
     // bi-directional current config is in the top 4 bits
     return (negPwrAct & (1 << (channelIndex + 4))) != 0;
