@@ -168,6 +168,12 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelVoltagePolarity(uint8_t channelIndex
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_CHANNEL_POLARITY::ERROR);
 
+    if (channelIndex > 3)
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
+        return PAC193X_CHANNEL_POLARITY::ERROR;
+    }
+
     // check the channel's voltage polarity. return an error state if the check fails.
     PAC193X_STATUS polarityStatus;
     bool isBipolar = IsChannelVoltageBipolar(channelIndex, &polarityStatus);
@@ -188,6 +194,12 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelCurrentPolarity(uint8_t channelIndex
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_CHANNEL_POLARITY::ERROR);
 
+    if (channelIndex > 3)
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
+        return PAC193X_CHANNEL_POLARITY::ERROR;
+    }
+
     // check the channel's current polarity. return an error state if the check fails.
     PAC193X_STATUS polarityStatus;
     bool isBipolar = IsChannelCurrentBipolar(channelIndex, &polarityStatus);
@@ -207,6 +219,11 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelCurrentPolarity(uint8_t channelIndex
 PAC193X_STATUS PAC193X::getChannelVoltageRange(uint8_t channelIndex, double* voltageMin, double* voltageMax)
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    if (channelIndex > 3)
+    {
+        return PAC193X_STATUS::InvalidChannelIndex;
+    }
 
     // voltageMin/voltageMax are not optional.
     if (voltageMin == nullptr || voltageMax == nullptr)
@@ -244,6 +261,11 @@ PAC193X_STATUS PAC193X::getChannelVoltageRange(uint8_t channelIndex, double* vol
 PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* currentMin, double* currentMax)
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    if (channelIndex > 3)
+    {
+        return PAC193X_STATUS::InvalidChannelIndex;
+    }
 
     // currentMin/currentMax are not optional.
     if (currentMin == nullptr || currentMax == nullptr)
