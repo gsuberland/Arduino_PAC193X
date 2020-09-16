@@ -322,6 +322,11 @@ class PAC193X
         uint64_t Read64(uint8_t registerAddress, PAC193X_STATUS* status);
         int64_t ReadSigned64(uint8_t registerAddress, PAC193X_STATUS* status);
 
+        double ReadVoltageResult(uint8_t channelIndex, const uint8_t* channelRegisterMap, PAC193X_STATUS* status);
+        double ReadCurrentResult(uint8_t channelIndex, const uint8_t* channelRegisterMap, PAC193X_STATUS* status);
+        /* Reads a 16-bit result register (voltage or current) and converts it to the correct representation. */
+        double ReadResultRegister(uint8_t registerAddress, bool bipolar, double min, double max, PAC193X_STATUS* status);
+
         /* Returns true if the voltage measurement for the channel at the specified index (0-3) is in bipolar mode. */
         bool IsChannelVoltageBipolar(uint8_t channelIndex, PAC193X_STATUS* status);
         /* Returns true if the current measurement for the channel at the specified index (0-3) is in bipolar mode. */

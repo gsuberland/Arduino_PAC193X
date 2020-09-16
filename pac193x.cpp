@@ -78,19 +78,33 @@ uint8_t PAC193X::getRevisionID(PAC193X_STATUS* status)
 
 double PAC193X::getVoltageLast(uint8_t channelIndex, PAC193X_STATUS* status)
 {
-    if (channelIndex > 3)
-    {
-        return PAC193X_STATUS::InvalidChannelIndex;
-    }
-    if (!isChannelEnabled(channelIndex, status))
-    {
-        return PAC193X_STATUS::ChannelDisabled;
-    }
-    if (IsRefreshPending())
-    {
-        return PAC193X_STATUS::WaitingForRefresh;
-    }
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
+    return ReadVoltageResult(channelIndex, PAC193X_VBUS_CHANNELS, status);
+}
+
+
+double PAC193X::getVoltageAverage(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return ReadVoltageResult(channelIndex, PAC193X_VBUS_AVG_CHANNELS, status);
+}
+
+
+double PAC193X::getCurrentLast(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return ReadCurrentResult(channelIndex, PAC193X_VSENSE_CHANNELS, status);
+}
+
+
+double PAC193X::getCurrentAverage(uint8_t channelIndex, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    return ReadCurrentResult(channelIndex, PAC193X_VSENSE_AVG_CHANNELS, status);
 }
 
 
@@ -498,6 +512,174 @@ int64_t PAC193X::ReadSigned64(uint8_t registerAddress, PAC193X_STATUS* status)
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
     return static_cast<int64_t>(Read64(registerAddress, status));
+}
+
+
+double PAC193X::ReadVoltageResult(uint8_t channelIndex, const uint8_t* channelRegisterMap, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    if (channelIndex > 3)
+    {
+        return PAC193X_STATUS::InvalidChannelIndex;
+    }
+    if (!isChannelEnabled(channelIndex, status))
+    {
+        return PAC193X_STATUS::ChannelDisabled;
+    }
+    if (IsRefreshPending())
+    {
+        return PAC193X_STATUS::WaitingForRefresh;
+    }
+
+    // find out if the channel is bipolar (i.e. signed)
+    PAC193X_STATUS bipolarStatus;
+    bool isBipolar = IsChannelVoltageBipolar(channelIndex, &bipolarStatus);
+    if (!PAC193X_STATUS_OK(bipolarStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(bipolarStatus);
+        return 0;
+    }
+
+    // get the min/max values
+    double voltageMin, voltageMax;
+    PAC193X_STATUS voltageRangeStatus = getChannelVoltageRange(channelIndex, &voltageMin, &voltageMax);
+    if (!PAC193X_STATUS_OK(voltageRangeStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(voltageRangeStatus);
+        return 0;
+    }
+
+    // get the register associated with the channel index
+    uint8_t registerAddr = channelRegisterMap[channelIndex];
+
+    // read the register value and translate it to a voltage representation
+    PAC193X_STATUS readStatus;
+    double voltage = ReadResultRegister(registerAddr, isBipolar, voltageMin, voltageMax, &readStatus);
+    if (!PAC193X_STATUS_OK(readStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+        return 0;
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    return voltage;
+}
+
+
+double PAC193X::ReadCurrentResult(uint8_t channelIndex, const uint8_t* channelRegisterMap, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    if (channelIndex > 3)
+    {
+        return PAC193X_STATUS::InvalidChannelIndex;
+    }
+    if (!isChannelEnabled(channelIndex, status))
+    {
+        return PAC193X_STATUS::ChannelDisabled;
+    }
+    if (IsRefreshPending())
+    {
+        return PAC193X_STATUS::WaitingForRefresh;
+    }
+
+    // find out if the channel is bipolar (i.e. signed)
+    PAC193X_STATUS bipolarStatus;
+    bool isBipolar = IsChannelCurrentBipolar(channelIndex, &bipolarStatus);
+    if (!PAC193X_STATUS_OK(bipolarStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(bipolarStatus);
+        return 0;
+    }
+
+    // get the min/max values
+    double currentMin, currentMax;
+    PAC193X_STATUS currentRangeStatus = getChannelCurrentRange(channelIndex, &currentMin, &currentMax);
+    if (!PAC193X_STATUS_OK(currentRangeStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(currentRangeStatus);
+        return 0;
+    }
+
+    // get the register associated with the channel index
+    uint8_t registerAddr = channelRegisterMap[channelIndex];
+
+    // read the register value and translate it to a voltage representation
+    PAC193X_STATUS readStatus;
+    double voltage = ReadResultRegister(registerAddr, isBipolar, currentMin, currentMax, &readStatus);
+    if (!PAC193X_STATUS_OK(readStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+        return 0;
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    return voltage;
+}
+
+
+double PAC193X::ReadResultRegister(uint8_t registerAddress, bool bipolar, double min, double max, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    if (bipolar && (min >= 0 || max <= 0))
+    {
+        // set internal error - min/max values must be negative and positive respectively.
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InternalError);
+        return 0;
+    }
+
+    if (!bipolar && (min < 0 || max <= 0))
+    {
+        // set internal error - min/max values should be 0 or greater and greater than zero respectively.
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InternalError);
+        return 0;
+    }
+
+    if (max < min)
+    {
+        // set internal error - wut? max must exceed min.
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InternalError);
+        return 0;
+    }
+
+    // get the reading, using signed or unsigned reads (depending on polarity)
+    double reading;
+    if (bipolar)
+    {
+        // read the register as a signed 16-bit integer
+        PAC193X_STATUS readStatus;
+        int16_t rawReading = ReadSigned16(registerAddress, &readStatus);
+        if (!PAC193X_STATUS_OK(readStatus))
+        {
+            PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+            return 0;
+        }
+        // convert the raw value to a reading.
+        // note that the negative scaling is sublty different to the positive scaling, because the range is +32767 to -32768.
+        if (rawReading >= 0)
+            reading = rawReading * (min / INT16_MAX);
+        else
+            reading = rawReading * (max / INT16_MIN);
+    }
+    else
+    {
+        // read the register as an unsigned 16-bit integer
+        PAC193X_STATUS readStatus;
+        int16_t rawReading = ReadSigned16(registerAddress, &readStatus);
+        if (!PAC193X_STATUS_OK(readStatus))
+        {
+            PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+            return 0;
+        }
+        // convert the raw value to a voltage.
+        double readingRange = min - max;
+        reading = min + (rawReading * (readingRange / UINT16_MAX));
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    return reading;
 }
 
 
