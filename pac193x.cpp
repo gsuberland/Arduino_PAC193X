@@ -149,6 +149,7 @@ bool PAC193X::isChannelEnabled(uint8_t channelIndex, PAC193X_STATUS* status)
     }
 
     // channel disable register is a bitmask: [CH1_OFF, CH2_OFF, CH3_OFF, CH4_OFF, U, U, U, U]
+    // use the CHANNEL_DIS_ACT register to get the actual (i.e. currently in-use) state of the channel
     PAC193X_STATUS readStatus;
     uint8_t channelDisableBits = Read8(PAC193X_CHANNEL_DIS_ACT_ADDR, &readStatus);
     if (!PAC193X_STATUS_OK(readStatus))
@@ -302,6 +303,45 @@ PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* cur
     }
 
     return PAC193X_STATUS::OK;
+}
+
+
+PAC193X_STATUS PAC193X::setChannelEnabled(uint8_t channelIndex, bool enable)
+{
+    PAC193X_RETURN_IF_NOT_CONFIGURED;
+
+    if (channelIndex > 3)
+    {
+        return PAC193X_STATUS::InvalidChannelIndex;
+    }
+
+    // read the current state from the CHANNEL_DIS register (i.e. current CHANNEL DIS state plus any existing pending changes)
+    // channel disable register is a bitmask: [CH1_OFF, CH2_OFF, CH3_OFF, CH4_OFF, U, U, U, U]
+    PAC193X_STATUS readStatus;
+    uint8_t channelDisableBits = Read8(PAC193X_CHANNEL_DIS_ADDR, &readStatus);
+    if (!PAC193X_STATUS_OK(readStatus))
+    {
+        return readStatus;
+    }
+
+    uint8_t channelBitPos = 4 + channelIndex;
+
+    // set or clear the channel disable bit for this channel
+    uint8_t newChannelDisableBits = channelDisableBits;
+    if (enable)
+    {
+        // clear the disable bit for this channel
+        newChannelDisableBits &= ~(1 << channelBitPos);
+    }
+    else
+    {
+        // set the disable bit for this channel
+        newChannelDisableBits |= (1 << channelBitPos);
+    }
+
+    // write the modified disable bit back to the CHANNEL_DIS register
+    PAC193X_STATUS writeStatus = WriteRegister(PAC193X_CHANNEL_DIS_ADDR, newChannelDisableBits);
+    return writeStatus;
 }
 
 

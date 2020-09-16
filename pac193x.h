@@ -275,18 +275,18 @@ class PAC193X
 
         /* Returns the number of physical channels for this particular device, based on the product ID. */
         uint8_t getPhysicalChannelCount();
-        /* Returns true if the channel at the specified index (0-3) is enabled, otherwise false. The status of the command is returned via the status parameter if null is not passed. */
+        /* Returns true if the channel at the specified index (0-3) is enabled, otherwise false. This method checks the actual channel state, and is not affected by pending changes that have not been committed by a refresh operation. The status of the command is returned via the status parameter if null is not passed. */
         bool isChannelEnabled(uint8_t channelIndex, PAC193X_STATUS* status);
-        /* Returns the voltage measurement polarity for the channel at the specified index (0-3). Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. */
+        /* Returns the voltage measurement polarity for the channel at the specified index (0-3). Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. The status of the command is returned via the status parameter if null is not passed. */
         PAC193X_CHANNEL_POLARITY getChannelVoltagePolarity(uint8_t channelIndex, PAC193X_STATUS* status);
-        /* Returns the current measurement polarity for the channel at the specified index (0-3). Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. */
+        /* Returns the current measurement polarity for the channel at the specified index (0-3). Unipolar channels have a shunt voltage range of 0V to +100mV, and bipolar channels have a shunt voltage range of -100mV to +100mV. The status of the command is returned via the status parameter if null is not passed. */
         PAC193X_CHANNEL_POLARITY getChannelCurrentPolarity(uint8_t channelIndex, PAC193X_STATUS* status);
         /* Returns the min and max voltage values for the channel at the specified index (0-3), via the reference parameters. */
         PAC193X_STATUS getChannelVoltageRange(uint8_t channelIndex, double* voltageMin, double* voltageMax);
         /* Returns the min and max current values for the channel at the specified index (0-3), via the reference parameters. */
         PAC193X_STATUS getChannelCurrentRange(uint8_t channelIndex, double* currentMin, double* currentMax);
-        /* Sets whether or not the channel at the specified index (0-3) is enabled. */
-        PAC193X_STATUS setChannelEnabled(uint8_t index, bool enable);
+        /* Sets whether or not the channel at the specified index (0-3) is enabled. Any changes to enabled/disabled channel state made by this function will be applied when a refresh is performed. */
+        PAC193X_STATUS setChannelEnabled(uint8_t channelIndex, bool enable);
 
     private:
         bool isConfigured;
