@@ -465,19 +465,19 @@ int16_t PAC193X::ReadSigned16(uint8_t registerAddress, PAC193X_STATUS* status)
 }
 
 
-uint32_t PAC193X::Read24(uint8_t registerAddress, PAC193X_STATUS* status)
+uint32_t PAC193X::Read28(uint8_t registerAddress, PAC193X_STATUS* status)
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
     
-    return Read32(registerAddress, status) >> 8;
+    return Read32(registerAddress, status) >> 4;
 }
 
 
-int32_t PAC193X::ReadSigned24(uint8_t registerAddress, PAC193X_STATUS* status)
+int32_t PAC193X::ReadSigned28(uint8_t registerAddress, PAC193X_STATUS* status)
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
     
-    return static_cast<int32_t>(Read32(registerAddress, status)) >> 8;
+    return static_cast<int32_t>(Read32(registerAddress, status)) >> 4;
 }
 
 

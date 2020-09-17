@@ -317,8 +317,8 @@ class PAC193X
         uint8_t Read8(uint8_t registerAddress, PAC193X_STATUS* status);
         uint16_t Read16(uint8_t registerAddress, PAC193X_STATUS* status);
         int16_t ReadSigned16(uint8_t registerAddress, PAC193X_STATUS* status);
-        uint32_t Read24(uint8_t registerAddress, PAC193X_STATUS* status);
-        int32_t ReadSigned24(uint8_t registerAddress, PAC193X_STATUS* status);
+        uint32_t Read28(uint8_t registerAddress, PAC193X_STATUS* status);
+        int32_t ReadSigned28(uint8_t registerAddress, PAC193X_STATUS* status);
         uint32_t Read32(uint8_t registerAddress, PAC193X_STATUS* status);
         int32_t ReadSigned32(uint8_t registerAddress, PAC193X_STATUS* status);
         uint64_t Read48(uint8_t registerAddress, PAC193X_STATUS* status);
