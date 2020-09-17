@@ -148,6 +148,9 @@ double PAC193X::getPower(uint8_t channelIndex, PAC193X_STATUS* status)
         return 0;
     }
 
+    // power polarity is bipolar if either the voltage or current measurements are configured as bipolar.
+    // otherwise power is unipolar.
+
     // find out if the channel voltage measurement is bipolar (i.e. signed)
     PAC193X_STATUS voltageBipolarStatus;
     bool voltageIsBipolar = IsChannelCurrentBipolar(channelIndex, &voltageBipolarStatus);
@@ -189,9 +192,9 @@ double PAC193X::getPower(uint8_t channelIndex, PAC193X_STATUS* status)
     double powerMin = voltageMin * currentMin;
     double powerMax = voltageMax * currentMax;
 
-    const int32_t INT28_MAX =  134217727i32;
-    const int32_t INT28_MIN = -134217728i32;
-    const int32_t UINT28_MAX = -268435456i32;
+    const int32_t INT28_MAX =  134217727L;
+    const int32_t INT28_MIN = -134217728L;
+    const uint32_t UINT28_MAX = 268435456UL;
 
     uint8_t powerRegisterAddr = PAC193X_VPOWER_CHANNELS[channelIndex];
 
@@ -219,6 +222,134 @@ double PAC193X::getPower(uint8_t channelIndex, PAC193X_STATUS* status)
         // read the register as an unsigned 28-bit integer
         PAC193X_STATUS readStatus;
         uint32_t rawReading = Read28(powerRegisterAddr, &readStatus);
+        if (!PAC193X_STATUS_OK(readStatus))
+        {
+            PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+            return 0;
+        }
+        // convert the raw value to a power value.
+        double readingRange = powerMin - powerMax;
+        power = powerMin + (rawReading * (readingRange / UINT28_MAX));
+    }
+
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    return power;
+}
+
+
+double PAC193X::getPowerAccumulated(uint8_t channelIndex, bool* overflow, PAC193X_STATUS* status)
+{
+    PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
+
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
+        return 0;
+    }
+    if (!isChannelEnabled(channelIndex, status))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::ChannelDisabled);
+        return 0;
+    }
+    if (IsRefreshPending())
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::WaitingForRefresh);
+        return 0;
+    }
+
+    // check the OVF flag and return it in overflow
+    if (overflow != nullptr)
+    {
+        PAC193X_STATUS readCtrlStatus;
+        uint8_t ctrlActReg = Read8(PAC193X_CTRL_ACT_ADDR, &readCtrlStatus);
+        if (!PAC193X_STATUS_OK(readCtrlStatus))
+        {
+            PAC193X_SET_STATUS_IF_NOT_NULL(readCtrlStatus);
+            return 0;
+        }
+        // OVF flag is in the LSB of the CTRL_ACT register.
+        *overflow = (ctrlActReg & 1) == 1;
+    }
+
+    // power accumulator polarity is bipolar if either the voltage or current measurements are configured as bipolar.
+    // otherwise power is unipolar.
+
+    // find out if the channel voltage measurement is bipolar (i.e. signed)
+    PAC193X_STATUS voltageBipolarStatus;
+    bool voltageIsBipolar = IsChannelCurrentBipolar(channelIndex, &voltageBipolarStatus);
+    if (!PAC193X_STATUS_OK(voltageBipolarStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(voltageBipolarStatus);
+        return 0;
+    }
+
+    // find out if the channel current measurement is bipolar (i.e. signed)
+    PAC193X_STATUS currentBipolarStatus;
+    bool currentIsBipolar = IsChannelCurrentBipolar(channelIndex, &currentBipolarStatus);
+    if (!PAC193X_STATUS_OK(currentBipolarStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(currentBipolarStatus);
+        return 0;
+    }
+
+    bool powerIsBipolar = voltageIsBipolar | currentIsBipolar;
+
+    // get the min/max voltage values
+    double voltageMin, voltageMax;
+    PAC193X_STATUS voltageRangeStatus = getChannelVoltageRange(channelIndex, &voltageMin, &voltageMax);
+    if (!PAC193X_STATUS_OK(voltageRangeStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(voltageRangeStatus);
+        return 0;
+    }
+    
+    // get the min/max current values
+    double currentMin, currentMax;
+    PAC193X_STATUS currentRangeStatus = getChannelCurrentRange(channelIndex, &currentMin, &currentMax);
+    if (!PAC193X_STATUS_OK(currentRangeStatus))
+    {
+        PAC193X_SET_STATUS_IF_NOT_NULL(currentRangeStatus);
+        return 0;
+    }
+
+    double powerMin = voltageMin * currentMin;
+    double powerMax = voltageMax * currentMax;
+
+    // the numbers here are actually scaled as if 28-bit integers, because the register is an accumulator.
+    const int32_t INT28_MAX =  134217727L;
+    const int32_t INT28_MIN = -134217728L;
+    const uint32_t UINT28_MAX = 268435456UL;
+    /*const int64_t INT48_MAX =  140737488355327LL;
+    const int64_t INT48_MIN = -140737488355328LL;
+    const uint64_t UINT48_MAX = 281474976710656ULL;*/
+
+    // figure out which power accumulator register we need
+    uint8_t powerAccRegisterAddr = PAC193X_VPOWER_ACC_CHANNELS[channelIndex];
+
+    // get the power reading, using signed or unsigned reads (depending on polarity)
+    double power;
+    if (powerIsBipolar)
+    {
+        // read the register as a signed 28-bit integer
+        PAC193X_STATUS readStatus;
+        int64_t rawReading = ReadSigned28(powerAccRegisterAddr, &readStatus);
+        if (!PAC193X_STATUS_OK(readStatus))
+        {
+            PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
+            return 0;
+        }
+        // convert the raw value to a reading.
+        // note that the negative scaling is sublty different to the positive scaling, because the range is +134,217,727 (2^27-1) to -134,217,728 (-2^27).
+        if (rawReading >= 0)
+            power = rawReading * (powerMax / INT28_MAX);
+        else
+            power = rawReading * (powerMin / INT28_MIN);
+    }
+    else
+    {
+        // read the register as an unsigned 48-bit integer
+        PAC193X_STATUS readStatus;
+        uint64_t rawReading = Read48(powerAccRegisterAddr, &readStatus);
         if (!PAC193X_STATUS_OK(readStatus))
         {
             PAC193X_SET_STATUS_IF_NOT_NULL(readStatus);
