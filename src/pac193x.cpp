@@ -7,7 +7,8 @@
  *
  */
 
-#include "pac193x.h"
+#include "PAC193X.h"
+#include <math.h>
 
 
 PAC193X::PAC193X()
@@ -60,7 +61,7 @@ PAC193X_STATUS PAC193X::begin(uint8_t address, uint32_t shuntResistancesMicroOhm
     
     this->isConfigured = true;
 
-    return PAC193X_STATUS::OK;
+    return PAC193X_STATUS::NoError;
 }
 
 
@@ -232,7 +233,7 @@ double PAC193X::getPower(uint8_t channelIndex, PAC193X_STATUS* status)
         power = powerMin + (rawReading * (readingRange / UINT28_MAX));
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
     return power;
 }
 
@@ -360,7 +361,7 @@ double PAC193X::getPowerAccumulated(uint8_t channelIndex, bool* overflow, PAC193
         power = powerMin + (rawReading * (readingRange / UINT28_MAX));
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
     return power;
 }
 
@@ -429,7 +430,7 @@ bool PAC193X::isChannelEnabled(uint8_t channelIndex, PAC193X_STATUS* status)
         return false;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
     
     uint8_t channelBitPos = 4 + channelIndex;
     return (channelDisableBits & (1 << channelBitPos)) != 0;
@@ -455,7 +456,7 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelVoltagePolarity(uint8_t channelIndex
         return PAC193X_CHANNEL_POLARITY::ERROR;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
 
     // return the appropriate polarity value
     return isBipolar ? PAC193X_CHANNEL_POLARITY::BIPOLAR : PAC193X_CHANNEL_POLARITY::UNIPOLAR;
@@ -481,7 +482,7 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelCurrentPolarity(uint8_t channelIndex
         return PAC193X_CHANNEL_POLARITY::ERROR;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
 
     // return the appropriate polarity value
     return isBipolar ? PAC193X_CHANNEL_POLARITY::BIPOLAR : PAC193X_CHANNEL_POLARITY::UNIPOLAR;
@@ -526,7 +527,7 @@ PAC193X_STATUS PAC193X::getChannelVoltageRange(uint8_t channelIndex, double* vol
             return PAC193X_STATUS::InternalError;
     }
 
-    return PAC193X_STATUS::OK;
+    return PAC193X_STATUS::NoError;
 }
 
 
@@ -573,7 +574,7 @@ PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* cur
             return PAC193X_STATUS::InternalError;
     }
 
-    return PAC193X_STATUS::OK;
+    return PAC193X_STATUS::NoError;
 }
 
 
@@ -631,7 +632,7 @@ PAC193X_STATUS PAC193X::WriteRegister(uint8_t registerAddress, uint8_t value)
     if (Wire.endTransmission() != 0)
         return PAC193X_STATUS::WriteError;
     
-    return PAC193X_STATUS::OK;
+    return PAC193X_STATUS::NoError;
 }
 
 
@@ -668,7 +669,7 @@ PAC193X_STATUS PAC193X::ReadRegister(uint8_t registerAddress, uint8_t byteCount,
     if (Wire.endTransmission() != 0)
         return PAC193X_STATUS::WriteError;
     
-    return PAC193X_STATUS::OK;
+    return PAC193X_STATUS::NoError;
 }
 
 
@@ -819,7 +820,7 @@ double PAC193X::ReadVoltageResult(uint8_t channelIndex, const uint8_t* channelRe
         return 0;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
     return voltage;
 }
 
@@ -871,7 +872,7 @@ double PAC193X::ReadCurrentResult(uint8_t channelIndex, const uint8_t* channelRe
         return 0;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
     return voltage;
 }
 
@@ -935,7 +936,7 @@ double PAC193X::ReadResultRegister(uint8_t registerAddress, bool bipolar, double
         reading = min + (rawReading * (readingRange / UINT16_MAX));
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
     return reading;
 }
 
@@ -959,7 +960,7 @@ bool PAC193X::IsChannelVoltageBipolar(uint8_t channelIndex, PAC193X_STATUS* stat
         return readStatus;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
 
     // bi-directional voltage config is in the bottom 4 bits
     return (negPwrAct & (1 << channelIndex)) != 0;
@@ -985,7 +986,7 @@ bool PAC193X::IsChannelCurrentBipolar(uint8_t channelIndex, PAC193X_STATUS* stat
         return readStatus;
     }
 
-    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::OK);
+    PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NoError);
 
     // bi-directional current config is in the top 4 bits
     return (negPwrAct & (1 << (channelIndex + 4))) != 0;
@@ -1012,7 +1013,8 @@ bool PAC193X::ValidateShuntResistance(uint32_t resistance)
 
 bool PAC193X::ValidateSampleRate(PAC193X_SAMPLE_RATE sampleRate)
 {
-    return (sampleRate >= PAC193X_SAMPLE_RATE::VALUE_MIN) && (sampleRate <= PAC193X_SAMPLE_RATE::VALUE_MAX);
+    return (sampleRate >= PAC193X_SAMPLE_RATE::PAC193X_SAMPLE_RATE_VALUE_MIN) && 
+            (sampleRate <= PAC193X_SAMPLE_RATE::PAC193X_SAMPLE_RATE_VALUE_MAX);
 }
 
 

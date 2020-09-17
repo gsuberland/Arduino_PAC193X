@@ -131,8 +131,8 @@ enum PAC193X_PRODUCT : uint8_t
     PAC1932 = PAC1932_PRODUCT_ID,
     PAC1933 = PAC1933_PRODUCT_ID,
     PAC1934 = PAC1934_PRODUCT_ID,
-    VALUE_MIN = PAC1931,
-    VALUE_MAX = PAC1934,
+    PAC193X_PRODUCT_VALUE_MIN = PAC1931,
+    PAC193X_PRODUCT_VALUE_MAX = PAC1934,
     INVALID = 0xFF
 };
 
@@ -170,7 +170,7 @@ enum PAC193X_CHANNEL_POLARITY : uint8_t
 
 enum PAC193X_STATUS : uint8_t
 {
-    OK,
+    NoError,
 
     InternalError,
 
@@ -194,7 +194,7 @@ enum PAC193X_STATUS : uint8_t
     ChannelDisabled,
 };
 
-#define PAC193X_STATUS_OK(sv) (sv == PAC193X_STATUS::OK)
+#define PAC193X_STATUS_OK(sv) (sv == PAC193X_STATUS::NoError)
 
 
 enum PAC193X_SAMPLE_RATE : uint8_t
@@ -203,8 +203,8 @@ enum PAC193X_SAMPLE_RATE : uint8_t
     RATE_256    = 0b01,
     RATE_64     = 0b10,
     RATE_8      = 0b11,
-    VALUE_MIN   = RATE_1024,
-    VALUE_MAX   = RATE_8,
+    PAC193X_SAMPLE_RATE_VALUE_MIN   = RATE_1024,
+    PAC193X_SAMPLE_RATE_VALUE_MAX   = RATE_8,
 };
 
 
