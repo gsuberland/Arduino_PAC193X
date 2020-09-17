@@ -13,7 +13,10 @@
 PAC193X::PAC193X()
 {
     this->deviceAddress = 0;
-    this->shuntResistance = 0;
+    for (int n = 0; n < PAC193X_MAX_CHANNELS; n++)
+    {
+        this->shuntResistances[n] = 0;
+    }
     this->isConfigured = false;
 }
 
@@ -26,17 +29,34 @@ PAC193X::~PAC193X()
 
 PAC193X_STATUS PAC193X::begin(uint8_t address, uint32_t shuntResistanceMicroOhm, PAC193X_SAMPLE_RATE sampleRate = PAC193X_SAMPLE_RATE::RATE_1024)
 {
+    uint32_t resistances[PAC193X_MAX_CHANNELS];
+    for (int n = 0; n < PAC193X_MAX_CHANNELS; n++)
+    {
+        this->shuntResistances[n] = shuntResistanceMicroOhm;
+    }
+    return begin(address, resistances, sampleRate);
+}
+
+
+PAC193X_STATUS PAC193X::begin(uint8_t address, uint32_t shuntResistancesMicroOhm[PAC193X_MAX_CHANNELS], PAC193X_SAMPLE_RATE sampleRate = PAC193X_SAMPLE_RATE::RATE_1024)
+{
     if (!ValidateDeviceAddress(address))
         return PAC193X_STATUS::InvalidDeviceAddress;
 
-    if (!ValidateShuntResistance(shuntResistanceMicroOhm))
-        return PAC193X_STATUS::InvalidResistorValue;
+    for (int n = 0; n < PAC193X_MAX_CHANNELS; n++)
+    {
+        if (!ValidateShuntResistance(shuntResistancesMicroOhm[n]))
+            return PAC193X_STATUS::InvalidResistorValue;
+    }
 
     if (!ValidateSampleRate(sampleRate))
         return PAC193X_STATUS::InvalidSampleRate;
 
     this->deviceAddress = address;
-    this->shuntResistance = shuntResistanceMicroOhm;
+    for (int n = 0; n < PAC193X_MAX_CHANNELS; n++)
+    {
+        this->shuntResistances[n] = shuntResistancesMicroOhm[n];
+    }
     
     this->isConfigured = true;
 
@@ -156,7 +176,7 @@ bool PAC193X::isChannelEnabled(uint8_t channelIndex, PAC193X_STATUS* status)
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
     
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
         return false;
@@ -183,7 +203,7 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelVoltagePolarity(uint8_t channelIndex
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_CHANNEL_POLARITY::ERROR);
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
         return PAC193X_CHANNEL_POLARITY::ERROR;
@@ -209,7 +229,7 @@ PAC193X_CHANNEL_POLARITY PAC193X::getChannelCurrentPolarity(uint8_t channelIndex
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(PAC193X_CHANNEL_POLARITY::ERROR);
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
         return PAC193X_CHANNEL_POLARITY::ERROR;
@@ -235,7 +255,7 @@ PAC193X_STATUS PAC193X::getChannelVoltageRange(uint8_t channelIndex, double* vol
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         return PAC193X_STATUS::InvalidChannelIndex;
     }
@@ -277,7 +297,7 @@ PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* cur
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         return PAC193X_STATUS::InvalidChannelIndex;
     }
@@ -302,15 +322,15 @@ PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* cur
     {
         case PAC193X_CHANNEL_POLARITY::UNIPOLAR:
             *currentMin = (signbit(PAC193X_UNIPOLAR_CURRENT_MIN) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_UNIPOLAR_CURRENT_MIN / (this->shuntResistance / 1000000.0));
+                            sqrt(PAC193X_UNIPOLAR_CURRENT_MIN / (this->shuntResistances[channelIndex] / 1000000.0));
             *currentMax = (signbit(PAC193X_UNIPOLAR_CURRENT_MAX) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_UNIPOLAR_CURRENT_MAX / (this->shuntResistance / 1000000.0));
+                            sqrt(PAC193X_UNIPOLAR_CURRENT_MAX / (this->shuntResistances[channelIndex] / 1000000.0));
             break;
         case PAC193X_CHANNEL_POLARITY::BIPOLAR:
             *currentMin = (signbit(PAC193X_BIPOLAR_CURRENT_MIN) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_BIPOLAR_CURRENT_MIN / (this->shuntResistance / 1000000.0));
+                            sqrt(PAC193X_BIPOLAR_CURRENT_MIN / (this->shuntResistances[channelIndex] / 1000000.0));
             *currentMax = (signbit(PAC193X_BIPOLAR_CURRENT_MAX) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_BIPOLAR_CURRENT_MAX / (this->shuntResistance / 1000000.0));
+                            sqrt(PAC193X_BIPOLAR_CURRENT_MAX / (this->shuntResistances[channelIndex] / 1000000.0));
             break;
         default:
             return PAC193X_STATUS::InternalError;
@@ -324,7 +344,7 @@ PAC193X_STATUS PAC193X::setChannelEnabled(uint8_t channelIndex, bool enable)
 {
     PAC193X_RETURN_IF_NOT_CONFIGURED;
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         return PAC193X_STATUS::InvalidChannelIndex;
     }
@@ -519,7 +539,7 @@ double PAC193X::ReadVoltageResult(uint8_t channelIndex, const uint8_t* channelRe
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         return PAC193X_STATUS::InvalidChannelIndex;
     }
@@ -571,7 +591,7 @@ double PAC193X::ReadCurrentResult(uint8_t channelIndex, const uint8_t* channelRe
 {
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         return PAC193X_STATUS::InvalidChannelIndex;
     }
@@ -688,7 +708,7 @@ bool PAC193X::IsChannelVoltageBipolar(uint8_t channelIndex, PAC193X_STATUS* stat
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
     // validate channel index
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
         return false;
@@ -714,7 +734,7 @@ bool PAC193X::IsChannelCurrentBipolar(uint8_t channelIndex, PAC193X_STATUS* stat
     PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED;
 
     // validate channel index
-    if (channelIndex > 3)
+    if (channelIndex > PAC193X_MAX_CHANNELS - 1)
     {
         PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::InvalidChannelIndex);
         return false;

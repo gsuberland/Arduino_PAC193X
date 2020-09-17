@@ -33,6 +33,7 @@
 #define PAC193X_RETURN_WITH_PARAM_IF_NOT_CONFIGURED_RV(returnVal) { if (!this->isConfigured) { PAC193X_SET_STATUS_IF_NOT_NULL(PAC193X_STATUS::NotConfigured);  return returnVal; } }
 
 
+#define PAC193X_MAX_CHANNELS            4       /* The maximum number of channels this library should support. This will likely never change, but is used for clarity. */
 #define PAC193X_REFRESH_WAIT_TIME_US    1050    /* This value represents the amount of time, in microseconds, that must be waited between issuing a refresh command and attempting to read from a value register. */
 
 /*      Register                        Addr    Description */
@@ -235,6 +236,9 @@ class PAC193X
         PAC193X();
         ~PAC193X();
 
+        /* Initialises the library, given the I2C/SMBus address of the device, the shunt resistances for each channel (in microohms), and the sample rate to use. */
+        PAC193X_STATUS begin(uint8_t address, uint32_t shuntResistancesMicroOhm[PAC193X_MAX_CHANNELS], PAC193X_SAMPLE_RATE sampleRate);
+        /* Initialises the library, given the I2C/SMBus address of the device, a common shunt resistance for all channels (in microohms), and the sample rate to use. */
         PAC193X_STATUS begin(uint8_t address, uint32_t shuntResistanceMicroOhm, PAC193X_SAMPLE_RATE sampleRate);
 
         /* Returns the product ID from the PRODUCT_ID register. The status of the command is returned via the status parameter if null is not passed. */
@@ -291,7 +295,7 @@ class PAC193X
     private:
         bool isConfigured;
         uint8_t deviceAddress;
-        uint32_t shuntResistance;
+        uint32_t shuntResistances[PAC193X_MAX_CHANNELS];
         uint32_t timeOfLastRefreshCommand;
 
         /* Returns true if the device address if of the correct format (see PAC193X_ADDRESS_MASK_xxx defines and datasheet for info) */
@@ -322,9 +326,11 @@ class PAC193X
         uint64_t Read64(uint8_t registerAddress, PAC193X_STATUS* status);
         int64_t ReadSigned64(uint8_t registerAddress, PAC193X_STATUS* status);
 
+        /* Reads a voltage result register and scales it based on the current channel configuration. The channelRegisterMap parameter points to an array of register addresses for the channel. */
         double ReadVoltageResult(uint8_t channelIndex, const uint8_t* channelRegisterMap, PAC193X_STATUS* status);
+        /* Reads a current result register and scales it based on the current channel configuration and the shunt resistances. The channelRegisterMap parameter points to an array of register addresses for the channel. */
         double ReadCurrentResult(uint8_t channelIndex, const uint8_t* channelRegisterMap, PAC193X_STATUS* status);
-        /* Reads a 16-bit result register (voltage or current) and converts it to the correct representation. */
+        /* Reads a 16-bit result register (voltage or current) and scales it to a given output range. */
         double ReadResultRegister(uint8_t registerAddress, bool bipolar, double min, double max, PAC193X_STATUS* status);
 
         /* Returns true if the voltage measurement for the channel at the specified index (0-3) is in bipolar mode. */
