@@ -8,7 +8,6 @@
  */
 
 #include "PAC193X.h"
-#include <math.h>
 
 
 PAC193X::PAC193X()
@@ -555,20 +554,15 @@ PAC193X_STATUS PAC193X::getChannelCurrentRange(uint8_t channelIndex, double* cur
     }
 
     // set the min/max based on the polarity.
-    // this uses I=sqrt(V/R), but requires multiplication by the sign (-1 or 1) in order to produce correct values for negative voltages.
     switch (polarity)
     {
         case PAC193X_CHANNEL_POLARITY::UNIPOLAR:
-            *currentMin = (signbit(PAC193X_UNIPOLAR_CURRENT_MIN) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_UNIPOLAR_CURRENT_MIN / (this->shuntResistances[channelIndex] / 1000000.0));
-            *currentMax = (signbit(PAC193X_UNIPOLAR_CURRENT_MAX) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_UNIPOLAR_CURRENT_MAX / (this->shuntResistances[channelIndex] / 1000000.0));
+            *currentMin = PAC193X_UNIPOLAR_CURRENT_MIN / (this->shuntResistances[channelIndex] / 1000000.0);
+            *currentMax = PAC193X_UNIPOLAR_CURRENT_MAX / (this->shuntResistances[channelIndex] / 1000000.0);
             break;
         case PAC193X_CHANNEL_POLARITY::BIPOLAR:
-            *currentMin = (signbit(PAC193X_BIPOLAR_CURRENT_MIN) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_BIPOLAR_CURRENT_MIN / (this->shuntResistances[channelIndex] / 1000000.0));
-            *currentMax = (signbit(PAC193X_BIPOLAR_CURRENT_MAX) ? -1.0 : 1.0) *
-                            sqrt(PAC193X_BIPOLAR_CURRENT_MAX / (this->shuntResistances[channelIndex] / 1000000.0));
+            *currentMin = PAC193X_BIPOLAR_CURRENT_MIN / (this->shuntResistances[channelIndex] / 1000000.0);
+            *currentMax = PAC193X_BIPOLAR_CURRENT_MAX / (this->shuntResistances[channelIndex] / 1000000.0);
             break;
         default:
             return PAC193X_STATUS::InternalError;
